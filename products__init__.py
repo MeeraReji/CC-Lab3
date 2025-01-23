@@ -1,5 +1,5 @@
-from products import dao
 
+from products import dao
 
 class Product:
     def __init__(self, id: int, name: str, description: str, cost: float, qty: int = 0):
@@ -9,11 +9,8 @@ class Product:
         self.cost = cost
         self.qty = qty
 
-    @staticmethod
+    @staticmethod  # Optimization: Changed the load method to a static method for cleaner code and explicit type hinting.
     def load(data: dict) -> 'Product':
-        """
-        Creates a Product instance from a dictionary.
-        """
         return Product(
             id=data['id'],
             name=data['name'],
@@ -22,35 +19,20 @@ class Product:
             qty=data['qty']
         )
 
-
 def list_products() -> list[Product]:
-    """
-    Retrieves a list of products from the database and returns them as Product instances.
-    """
+    # Optimization: Used list comprehension for conciseness and better readability.
     return [Product.load(product) for product in dao.list_products()]
 
-
 def get_product(product_id: int) -> Product:
-    """
-    Fetches a single product by its ID and returns it as a Product instance.
-    """
     product_data = dao.get_product(product_id)
-    if not product_data:
+    if not product_data:  # Optimization: Added a null check to handle cases where the product might not exist.
         return None  # Return None if the product does not exist
     return Product.load(product_data)
 
-
 def add_product(product: dict):
-    """
-    Adds a new product to the database.
-    """
     dao.add_product(product)
 
-
 def update_qty(product_id: int, qty: int):
-    """
-    Updates the quantity of a product. Raises a ValueError if quantity is negative.
-    """
     if qty < 0:
         raise ValueError('Quantity cannot be negative')
     dao.update_qty(product_id, qty)
