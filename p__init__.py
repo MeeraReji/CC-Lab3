@@ -1,56 +1,50 @@
-from products import dao
+import json
+from typing import List, Optional
+from products import Product, get_product
+from cart import dao
 
-
-class Product:
-    def __init__(self, id: int, name: str, description: str, cost: float, qty: int = 0):
+class Cart:
+    def __init__(self, id: int, username: str, contents: List[Product], cost: float):
         self.id = id
-        self.name = name
-        self.description = description
+        self.username = username
+        self.contents = contents
         self.cost = cost
-        self.qty = qty
 
-    @staticmethod
-    def load(data: dict) -> 'Product':
-        """
-        Creates a Product instance from a dictionary.
-        """
-        return Product(
+    @staticmethod  # Optimization: Changed the load method to a static method for clarity and included type hinting for better readability.
+    def load(data: dict) -> 'Cart':
+        # Optimization: The contents are now loaded as a list of Product objects directly using a list comprehension.
+        return Cart(
             id=data['id'],
-            name=data['name'],
-            description=data['description'],
-            cost=data['cost'],
-            qty=data['qty']
+            username=data['username'],
+            contents=[Product.load(p) for p in data['contents']],
+            cost=data['cost']
         )
 
+def get_cart(username: str) -> List[Product]:
+    cart_details = dao.get_cart(username)
+    if not cart_details:  # Optimization: Simplified the null check using `if not`.
+        return []
 
-def list_products() -> list[Product]:
-    """
-    Retrieves a list of products from the database and returns them as Product instances.
-    """
-    return [Product.load(product) for product in dao.list_products()]
+    products_in_cart = []
+    for cart_detail in cart_details:
+        try:
+            # Optimization: Replaced the unsafe `eval` function with `json.loads` for secure and efficient parsing.
+            contents = json.loads(cart_detail['contents'])
+        except json.JSONDecodeError:
+            continue  # Optimization: Added error handling to skip invalid JSON entries.
 
+        for product_id in contents:
+            product = get_product(product_id)
+            if product:  # Optimization: Added a check to ensure only valid products are appended.
+                products_in_cart.append(product)
 
-def get_product(product_id: int) -> Product:
-    """
-    Fetches a single product by its ID and returns it as a Product instance.
-    """
-    product_data = dao.get_product(product_id)
-    if not product_data:
-        return None  # Return None if the product does not exist
-    return Product.load(product_data)
+    return products_in_cart
 
+def add_to_cart(username: str, product_id: int):
+    dao.add_to_cart(username, product_id)
 
-def add_product(product: dict):
-    """
-    Adds a new product to the database.
-    """
-    dao.add_product(product)
+def remove_from_cart(username: str, product_id: int):
+    dao.remove_from_cart(username, product_id)
 
-
-def update_qty(product_id: int, qty: int):
-    """
-    Updates the quantity of a product. Raises a ValueError if quantity is negative.
-    """
-    if qty < 0:
-        raise ValueError('Quantity cannot be negative')
-    dao.update_qty(product_id, qty)
+def delete_cart(username: str):
+    dao.delete_cart(username)
